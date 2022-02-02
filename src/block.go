@@ -2,12 +2,12 @@ package main
 
 type Block struct {
 	Header          BlockHeader
-	LenTransactions byte
-	Transactions    [1]Transaction
+	LenTransactions vlqInt
+	Transactions    [0]Transaction
 }
 type BlockHeader struct {
 	Version           byte
-	Height            uint32 // Variable l q
+	Height            vlqInt
 	PreviousBlockHash [32]byte
 	MerkleRootHash    [32]byte
 	Timestamp         uint32
@@ -19,10 +19,10 @@ type BlockHeader struct {
 }
 type Transaction struct {
 	Version    byte
-	LenInputs  byte // Variable l q
-	Inputs     [1]Input
-	LenOutputs byte // Variable l q
-	Outputs    [1]Output
+	LenInputs  vlqInt
+	Inputs     []Input
+	LenOutputs vlqInt
+	Outputs    []Output
 }
 type Input struct {
 	Hash      [32]byte

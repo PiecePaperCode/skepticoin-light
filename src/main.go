@@ -2,9 +2,14 @@ package main
 
 import (
 	"github.com/wonderivan/logger"
+	"os"
 )
 
 func main() {
+	hello := HelloMessage{}
+	DESERIALIZE(serialize.Hello(hello), HelloMessage{})
+
+	os.Exit(0)
 	PeerEvent.Hello()
 	for {
 		receive()

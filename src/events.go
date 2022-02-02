@@ -71,24 +71,29 @@ var PeerEvent = struct {
 		checkErrorReturn(peer.Socket.Write(buf.Bytes()))
 	},
 	SendPeers: func(peer RemotePeer) {
-		var peerMessage [10]PeerMessage
-		for i, p := range peers {
-			if 10 < i {
-				break
-			}
-			if p.Connected {
-				peerMessage[i] = PeerMessage{
+		peerMessage := [5]PeerMessage{}
+		r := 0
+		for _, p := range peers {
+			if p.Connected && r < 5 {
+				peerMessage[r] = PeerMessage{
 					LastSeen: uint32(time.Now().Unix()),
-					IP:       [16]byte{},
-					Port:     0,
+					IP:       p.IP,
+					Port:     p.Port,
 				}
+				r++
 			}
 		}
-		peersMessage := PeersMessage{
+		peersMessage := struct {
+			Header   Header
+			Type     uint16
+			Version  byte
+			LenPeers uint16 // Variable l q
+			Peers    [5]PeerMessage
+		}{
 			Header:   constructHeader(),
 			Type:     MSG.Peers,
 			Version:  0,
-			LenPeers: 10,
+			LenPeers: 5,
 			Peers:    peerMessage,
 		}
 		peersMessage.Header.Len = uint32(
@@ -108,7 +113,10 @@ var PeerEvent = struct {
 					break
 				}
 			}
-			if !known {
+			lastSeen := time.Now().Sub(
+				time.Unix(int64(peerMessage.LastSeen), 0),
+			)
+			if !known && lastSeen.Minutes() < 5 {
 				peers = append(
 					peers,
 					RemotePeer{
@@ -130,7 +138,7 @@ func connect(peer RemotePeer) (net.Conn, error) {
 	con, err := net.DialTimeout(
 		"tcp",
 		ip(peer.IP, peer.Port),
-		2*time.Second,
+		300*time.Millisecond,
 	)
 	if err != nil {
 		return nil, err

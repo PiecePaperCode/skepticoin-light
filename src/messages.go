@@ -49,8 +49,9 @@ func constructHeader() Header {
 }
 
 type Message struct {
-	Header Header
-	Type   uint16
+	Header  Header
+	Type    uint16
+	Version byte
 }
 type HelloMessage struct {
 	Header           Header
@@ -77,10 +78,10 @@ type PeerMessage struct { // 22 len
 }
 type PeersMessage struct {
 	Header   Header
-	Type     uint16 // 6
+	Type     uint16
 	Version  byte
-	LenPeers uint16 // Variable l q
-	Peers    [10]PeerMessage
+	LenPeers vlqInt
+	Peers    []PeerMessage
 }
 type DataMessage struct {
 	Header   Header

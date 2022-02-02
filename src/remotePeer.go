@@ -46,7 +46,7 @@ func receive() {
 		size := int(binary.BigEndian.Uint32(sizeByte[4:8])) + 8
 		reply := make([]byte, size)
 		checkErrorReturn(io.ReadFull(bufioReader, reply))
-		message := Serialisation.Message(reply)
+		message := deSerialize.Message(reply)
 		logger.Info(
 			"Received", size,
 			"Message Type", message.Type,
@@ -54,7 +54,7 @@ func receive() {
 		)
 		switch message.Type {
 		case MSG.Hello:
-			helloMessage := Serialisation.Hello(reply)
+			helloMessage := deSerialize.Hello(reply)
 			go PeerEvent.GetPeers(peer)
 			logger.Info(
 				ip(helloMessage.IP, helloMessage.Port),
@@ -66,26 +66,22 @@ func receive() {
 			go PeerEvent.SendPeers(peer)
 			break
 		case MSG.Peers:
-			peersMessage, err := Serialisation.Peers(reply)
+			peersMessage, err := deSerialize.Peers(reply)
 			if err != nil {
 				peers[i].Connected = false
 				logger.Error(ip(peer.IP, peer.Port), "Got Dropped")
 				go PeerEvent.Hello()
 			}
+			logger.Debug("Received", peersMessage.LenPeers, "Peers")
 			PeerEvent.AddPeers(peersMessage)
-			PeerEvent.Hello()
+			go PeerEvent.Hello()
 			break
 		case MSG.Data:
-			dataBlockMessage := Serialisation.DataBlockMessage(reply)
+			dataBlockMessage := deSerialize.DataBlockMessage(reply)
 			if dataBlockMessage.DataType == DATA.Block {
 				logger.Debug(
 					"New Block at Height",
 					dataBlockMessage.Block.Header.Height,
-					"New",
-					dataBlockMessage.Block.Transactions[0].Outputs[0].Value,
-					"SKEPTICOINS see the light of the world",
-					"Hashed by",
-					dataBlockMessage.Block.Transactions[0].Outputs[0].PublicKey,
 				)
 			}
 			break
