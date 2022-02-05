@@ -62,7 +62,7 @@ type HelloMessage struct {
 	MyIp             [18]byte
 	Nonce            uint32
 	UserAgentLength  byte
-	UserAgent        [14]byte // I assume it's always 14
+	UserAgent        [14]byte
 	SupportedVersion byte
 	Zeros            [256]byte
 }

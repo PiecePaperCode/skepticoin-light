@@ -32,8 +32,8 @@ func receive() {
 		maji, err := bufioReader.Peek(4)
 		if err != nil {
 			peers[i].Connected = false
-			logger.Warn(ip(peer.IP, peer.Port), "Got Dropped")
-			go PeerEvent.Hello()
+			logger.Warn(ip(peer.IP, peer.Port), "Got Dropped", err)
+			//go PeerEvent.Hello()
 			continue
 		}
 		if string(maji) != "MAJI" || err != nil {
@@ -46,15 +46,16 @@ func receive() {
 		size := int(binary.BigEndian.Uint32(sizeByte[4:8])) + 8
 		reply := make([]byte, size)
 		checkErrorReturn(io.ReadFull(bufioReader, reply))
-		message := deSerialize.Message(reply)
+		message, _ := DESERIALIZE(reply, Message{})
 		logger.Info(
 			"Received", size,
-			"Message Type", message.Type,
+			"Message Type", message.(Message).Type,
 			"From", ip(peer.IP, peer.Port),
 		)
-		switch message.Type {
+		switch message.(Message).Type {
 		case MSG.Hello:
-			helloMessage := deSerialize.Hello(reply)
+			message, _ := DESERIALIZE(reply, HelloMessage{})
+			helloMessage := message.(HelloMessage)
 			go PeerEvent.GetPeers(peer)
 			logger.Info(
 				ip(helloMessage.IP, helloMessage.Port),
@@ -66,18 +67,15 @@ func receive() {
 			go PeerEvent.SendPeers(peer)
 			break
 		case MSG.Peers:
-			peersMessage, err := deSerialize.Peers(reply)
-			if err != nil {
-				peers[i].Connected = false
-				logger.Error(ip(peer.IP, peer.Port), "Got Dropped")
-				go PeerEvent.Hello()
-			}
+			message, _ := DESERIALIZE(reply, PeersMessage{})
+			peersMessage := message.(PeersMessage)
 			logger.Debug("Received", peersMessage.LenPeers, "Peers")
 			PeerEvent.AddPeers(peersMessage)
 			go PeerEvent.Hello()
 			break
 		case MSG.Data:
-			dataBlockMessage := deSerialize.DataBlockMessage(reply)
+			message, _ := DESERIALIZE(reply, DataBlockMessage{})
+			dataBlockMessage := message.(DataBlockMessage)
 			if dataBlockMessage.DataType == DATA.Block {
 				logger.Debug(
 					"New Block at Height",

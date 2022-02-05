@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"github.com/wonderivan/logger"
 	"math/rand"
 	"net"
@@ -20,7 +18,6 @@ var PeerEvent = struct {
 			if peer.Connected {
 				continue
 			}
-			hello := new(bytes.Buffer)
 			helloMessage := HelloMessage{
 				Header:           constructHeader(),
 				Type:             MSG.Hello,
@@ -34,27 +31,19 @@ var PeerEvent = struct {
 				SupportedVersion: 0,
 				Zeros:            [256]byte{},
 			}
-			helloMessage.Header.Len = uint32(binary.Size(helloMessage)) - 8
-			checkError(
-				binary.Write(
-					hello,
-					binary.BigEndian,
-					helloMessage,
-				),
-			)
+			helloMessage.Header.Len = uint32(len(SERIALIZE(helloMessage))) - 8
 			con, err := connect(peer)
 			if err != nil {
 				peers[i].Connected = false
 				continue
 			}
-			checkErrorReturn(con.Write(hello.Bytes()))
+			checkErrorReturn(con.Write(SERIALIZE(helloMessage)))
 			peers[i].Socket = con
 			peers[i].Connected = true
 		}
 	},
 	GetPeers: func(peer RemotePeer) {
 		logger.Info("Get Peers from", ip(peer.IP, peer.Port))
-		buf := new(bytes.Buffer)
 		getPeersMessage :=
 			GetPeersMessage{
 				Header:  constructHeader(),
@@ -62,47 +51,40 @@ var PeerEvent = struct {
 				Version: 0,
 			}
 		getPeersMessage.Header.Len = uint32(
-			binary.Size(getPeersMessage),
+			len(SERIALIZE(getPeersMessage)),
 		) - 8
 		getPeersMessage.Header.Id = 2
-		getPeersMessage.Header.ResponseId = 1
-		getPeersMessage.Header.Context = 14939624176500638228
-		checkError(binary.Write(buf, binary.BigEndian, getPeersMessage))
-		checkErrorReturn(peer.Socket.Write(buf.Bytes()))
+		getPeersMessage.Header.ResponseId = 2
+		getPeersMessage.Header.Context = 124312381912
+		checkErrorReturn(peer.Socket.Write(SERIALIZE(getPeersMessage)))
 	},
 	SendPeers: func(peer RemotePeer) {
-		peerMessage := [5]PeerMessage{}
-		r := 0
+		var peerMessage []PeerMessage
 		for _, p := range peers {
-			if p.Connected && r < 5 {
-				peerMessage[r] = PeerMessage{
+			if p.Connected {
+				peerMessage = append(peerMessage, PeerMessage{
 					LastSeen: uint32(time.Now().Unix()),
 					IP:       p.IP,
 					Port:     p.Port,
-				}
-				r++
+				})
 			}
 		}
-		peersMessage := struct {
-			Header   Header
-			Type     uint16
-			Version  byte
-			LenPeers uint16 // Variable l q
-			Peers    [5]PeerMessage
-		}{
+		peersMessage := PeersMessage{
 			Header:   constructHeader(),
 			Type:     MSG.Peers,
 			Version:  0,
-			LenPeers: 5,
+			LenPeers: vlqInt(len(peerMessage)),
 			Peers:    peerMessage,
 		}
 		peersMessage.Header.Len = uint32(
-			binary.Size(peersMessage),
+			len(SERIALIZE(peersMessage)),
 		) - 8
-		buf := new(bytes.Buffer)
-		checkError(binary.Write(buf, binary.BigEndian, peersMessage))
-		checkErrorReturn(peer.Socket.Write(buf.Bytes()))
-		logger.Info(ip(peer.IP, peer.Port), "Received", len(buf.Bytes()), "Peers")
+		checkErrorReturn(peer.Socket.Write(SERIALIZE(peersMessage)))
+		logger.Info(
+			ip(peer.IP, peer.Port),
+			"Send", peersMessage.LenPeers,
+			"Peers",
+		)
 	},
 	AddPeers: func(peersMessage PeersMessage) {
 		for _, peerMessage := range peersMessage.Peers {

@@ -3,7 +3,7 @@ package main
 type Block struct {
 	Header          BlockHeader
 	LenTransactions vlqInt
-	Transactions    [0]Transaction
+	Transactions    []Transaction
 }
 type BlockHeader struct {
 	Version           byte
@@ -39,8 +39,8 @@ type Signature struct {
 type CoinbaseSignature struct {
 	Type    byte
 	Height  uint32
-	Len     byte
-	Message [0]byte
+	Len     vlqInt
+	Message []byte
 }
 type SECP256k1Signature struct {
 	Type      byte
