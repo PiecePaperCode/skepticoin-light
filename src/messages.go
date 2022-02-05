@@ -66,6 +66,22 @@ type HelloMessage struct {
 	SupportedVersion byte
 	Zeros            [256]byte
 }
+type GetBlocksMessage struct {
+	Header         Header
+	Version        byte
+	LenStartHashes vlqInt
+	StartHashes    [32]byte
+}
+type Inventory struct {
+	Type uint16
+	Hash [32]byte
+}
+type InventoryMessage struct {
+	Header       Header
+	Version      byte
+	LenInventory vlqInt
+	Inventory    []Inventory
+}
 type GetPeersMessage struct {
 	Header
 	Type    uint16

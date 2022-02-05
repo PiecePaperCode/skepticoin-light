@@ -33,7 +33,7 @@ func receive() {
 		if err != nil {
 			peers[i].Connected = false
 			logger.Warn(ip(peer.IP, peer.Port), "Got Dropped", err)
-			//go PeerEvent.Hello()
+			go PeerEvent.Hello()
 			continue
 		}
 		if string(maji) != "MAJI" || err != nil {
@@ -80,6 +80,7 @@ func receive() {
 				logger.Debug(
 					"New Block at Height",
 					dataBlockMessage.Block.Header.Height,
+					dataBlockMessage.Block.Transactions[0].Outputs[0].Value,
 				)
 			}
 			break

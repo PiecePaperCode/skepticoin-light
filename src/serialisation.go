@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"math"
 	"reflect"
 )
@@ -90,7 +89,6 @@ func DESERIALIZE(byteArr []byte, t interface{}) (interface{}, int) {
 				counter += size
 			}
 			values.Set(tmp)
-			fmt.Println("SLICE", value.Type().Size(), tmp.Field(i).Type())
 			break
 		}
 	}
