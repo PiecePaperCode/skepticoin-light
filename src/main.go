@@ -5,19 +5,18 @@ import (
 )
 
 func main() {
-	PeerEvent.Hello()
 	for {
-		receive()
+		sendHello()
 	}
 }
 func checkError(err error) {
 	if err != nil {
-		logger.Emer(err)
+		logger.Error(err)
 	}
 }
 func checkErrorReturn(_ interface{}, err error) {
 	// Is used if the return is ignored but the error is not
 	if err != nil {
-		logger.Emer(err)
+		logger.Error(err)
 	}
 }
