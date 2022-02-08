@@ -10,7 +10,7 @@ import (
 // From wikipedia: https://en.wikipedia.org/wiki/Variable-length_quantity
 type vlqInt uint64
 
-func DESERIALIZE(byteArr []byte, t interface{}) (interface{}, int) {
+func deserialize(byteArr []byte, t interface{}) (interface{}, int) {
 	values := reflect.ValueOf(&t).Elem()
 	lenSlice := 0
 	tmp := reflect.New(values.Elem().Type()).Elem()
@@ -32,7 +32,7 @@ func DESERIALIZE(byteArr []byte, t interface{}) (interface{}, int) {
 		}
 		switch value.Kind() {
 		case reflect.Struct:
-			nestedStruct, n := DESERIALIZE(byteArr[counter:], value.Interface())
+			nestedStruct, n := deserialize(byteArr[counter:], value.Interface())
 			tmp.Field(i).Set(reflect.ValueOf(nestedStruct))
 			values.Set(tmp)
 			counter += n
@@ -80,7 +80,7 @@ func DESERIALIZE(byteArr []byte, t interface{}) (interface{}, int) {
 		case reflect.Slice:
 			for n := 0; n < lenSlice; n++ {
 				empty := reflect.New(reflect.TypeOf(value.Interface()).Elem()).Elem()
-				element, size := DESERIALIZE(byteArr[counter:], empty.Interface())
+				element, size := deserialize(byteArr[counter:], empty.Interface())
 				tmp.Field(i).Set(
 					reflect.Append(tmp.Field(i),
 						reflect.ValueOf(element),
@@ -94,7 +94,7 @@ func DESERIALIZE(byteArr []byte, t interface{}) (interface{}, int) {
 	}
 	return values.Interface(), counter
 }
-func SERIALIZE(t interface{}) []byte {
+func serialize(t interface{}) []byte {
 	buf := new(bytes.Buffer)
 	values := reflect.ValueOf(&t).Elem()
 	num := reflect.ValueOf(t).NumField()
@@ -109,7 +109,7 @@ func SERIALIZE(t interface{}) []byte {
 		}
 		switch value.Kind() {
 		case reflect.Struct:
-			result := SERIALIZE(value.Interface())
+			result := serialize(value.Interface())
 			buf.Write(result)
 			break
 		case reflect.Uint8:
@@ -144,7 +144,7 @@ func SERIALIZE(t interface{}) []byte {
 		case reflect.Slice:
 			for n := 0; n < value.Len(); n++ {
 				slice := reflect.New(reflect.TypeOf(value.Interface()).Elem()).Elem()
-				sliceBuf := SERIALIZE(slice.Interface())
+				sliceBuf := serialize(slice.Interface())
 				buf.Write(sliceBuf)
 			}
 		}
