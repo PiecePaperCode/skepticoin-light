@@ -14,8 +14,9 @@ func checkError(err error) {
 		logger.Error(err)
 	}
 }
+
+// Is used if the return is ignored but the error is not
 func checkErrorReturn(_ interface{}, err error) {
-	// Is used if the return is ignored but the error is not
 	if err != nil {
 		logger.Error(err)
 	}

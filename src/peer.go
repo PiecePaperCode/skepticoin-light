@@ -43,8 +43,15 @@ func receive(peer RemotePeer) error {
 		return err
 	}
 	if string(maji) != "MAJI" {
-		checkErrorReturn(bufioReader.Discard(4))
-		logger.Error("Wrong MAJI", maji)
+		logger.Warn("WRONG MAJI", maji)
+		for {
+			checkErrorReturn(bufioReader.Discard(1))
+			maji, err = bufioReader.Peek(4)
+			checkError(err)
+			if string(maji) == "MAJI" {
+				break
+			}
+		}
 		return nil
 	}
 	sizeByte, err := bufioReader.Peek(8)
@@ -55,18 +62,22 @@ func receive(peer RemotePeer) error {
 	message, _ := deserialize(reply, Message{})
 	switch message.(Message).Type {
 	case MSG.Hello:
-		go receiveHello(reply)
-		go requestPeers(peer)
+		receiveHello(reply)
+		requestPeers(peer)
+		//requestBlocks(peer)
+		requestBlockData(peer)
 		break
 	case MSG.GetPeers:
-		go sendPeers(peer)
-		go requestPeers(peer)
+		sendPeers(peer)
+		requestPeers(peer)
 		break
+	case MSG.Inventory:
+		receiveInventory(reply)
 	case MSG.Peers:
-		go receivePeers(reply)
+		receivePeers(reply)
 		break
 	case MSG.Data:
-		go receiveData(reply)
+		receiveData(reply)
 		break
 	}
 	logger.Info(
@@ -89,7 +100,7 @@ func sendHello() {
 			Port:             peer.Port,
 			MyIp:             [18]byte{},
 			Nonce:            rand.Uint32(),
-			UserAgentLength:  14,
+			LenUserAgent:     14,
 			UserAgent:        [14]byte{'p', 'i', 'e', 'c', 'e', 'g', 'o', ' ', '0', '.', '1', '.', '2', '1'},
 			SupportedVersion: 0,
 			Zeros:            [256]byte{},
@@ -113,6 +124,49 @@ func receiveHello(b []byte) {
 		ip(helloMessage.IP, helloMessage.Port),
 		"says Hello",
 		string(helloMessage.UserAgent[:]),
+	)
+}
+func requestBlocks(peer RemotePeer) {
+	getBlocksMessage := GetBlocksMessage{
+		Header:       constructHeader(),
+		Type:         MSG.GetBlocks,
+		Version:      0,
+		LenStartHash: 1,
+		StartHashes: [32]byte{0, 4, 130, 131, 177, 219, 116, 43, 192, 108, 216,
+			194, 193, 51, 62, 126, 122, 127, 18, 74, 26, 233, 20, 147, 205, 167,
+			223, 222, 146, 196, 60, 181},
+		Zeros: [32]byte{},
+	}
+	getBlocksMessage.Header.Len = uint32(
+		len(serialize(getBlocksMessage)),
+	) - 8
+	checkErrorReturn(peer.Socket.Write(serialize(getBlocksMessage)))
+	logger.Debug("Get Blocks")
+}
+func requestBlockData(peer RemotePeer) {
+	getDataMessage := GetDataMessage{
+		Header:   constructHeader(),
+		Type:     MSG.GetBlocks,
+		Version:  0,
+		DataType: DATA.Block,
+		Hash: [32]byte{98, 32, 183, 18, 107, 163, 66, 204, 151, 224, 229, 157,
+			13, 19, 250, 232, 100, 217, 25, 222, 9, 89, 107, 133, 232, 53, 138,
+			254, 184, 81, 97, 166},
+	}
+	getDataMessage.Header.Len = uint32(
+		len(serialize(getDataMessage)),
+	) - 8
+	checkErrorReturn(peer.Socket.Write(serialize(getDataMessage)))
+	logger.Debug("Get DATA Blocks")
+}
+func receiveInventory(b []byte) {
+	message, _ := deserialize(b, InventoryMessage{})
+	inventoryMessage := message.(InventoryMessage)
+	logger.Debug(
+		"Inventory Type",
+		inventoryMessage.Inventory[0].Type,
+		"Message",
+		inventoryMessage.Inventory[0].Hash,
 	)
 }
 func requestPeers(peer RemotePeer) {
@@ -184,7 +238,7 @@ func receivePeers(b []byte) {
 			)
 		}
 	}
-	logger.Debug("Received", peersMessage.LenPeers, "Peers")
+	logger.Info("Received", peersMessage.LenPeers, "Peers")
 }
 func receiveData(b []byte) {
 	message, _ := deserialize(b, DataBlockMessage{})
@@ -193,6 +247,7 @@ func receiveData(b []byte) {
 		logger.Debug(
 			"New Block at Height",
 			dataBlockMessage.Block.Header.Height,
+			dataBlockMessage.Block.Header.BlockHash,
 		)
 	}
 }
