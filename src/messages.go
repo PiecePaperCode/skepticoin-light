@@ -61,26 +61,56 @@ type HelloMessage struct {
 	Port             uint16
 	MyIp             [18]byte
 	Nonce            uint32
-	UserAgentLength  byte
+	LenUserAgent     byte
 	UserAgent        [14]byte
 	SupportedVersion byte
 	Zeros            [256]byte
 }
 type GetBlocksMessage struct {
-	Header         Header
-	Version        byte
-	LenStartHashes vlqInt
-	StartHashes    [32]byte
+	Header       Header
+	Type         uint16
+	Version      byte
+	LenStartHash uint8
+	StartHashes  [32]byte
+	Zeros        [32]byte
 }
-type Inventory struct {
+type InventoryItem struct {
 	Type uint16
 	Hash [32]byte
 }
 type InventoryMessage struct {
 	Header       Header
+	Type         uint16
 	Version      byte
 	LenInventory vlqInt
-	Inventory    []Inventory
+	Inventory    []InventoryItem
+}
+type GetDataMessage struct {
+	Header   Header
+	Type     uint16
+	Version  byte
+	DataType uint16
+	Hash     [32]byte
+}
+type DataMessage struct {
+	Header   Header
+	Type     uint16
+	Version  byte
+	DataType uint16
+}
+type DataBlockMessage struct {
+	Header   Header
+	Type     uint16
+	Version  byte
+	DataType uint16
+	Block    Block
+}
+type DataTransactionMessage struct {
+	Header      Header
+	Type        uint16
+	Version     byte
+	DataType    uint16
+	Transaction Transaction
 }
 type GetPeersMessage struct {
 	Header
@@ -98,17 +128,4 @@ type PeersMessage struct {
 	Version  byte
 	LenPeers vlqInt
 	Peers    []PeerMessage
-}
-type DataMessage struct {
-	Header   Header
-	Type     uint16
-	Version  byte
-	DataType uint16
-}
-type DataBlockMessage struct {
-	Header   Header
-	Type     uint16
-	Version  byte
-	DataType uint16
-	Block    Block
 }

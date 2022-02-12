@@ -100,7 +100,6 @@ func serialize(t interface{}) []byte {
 	num := reflect.ValueOf(t).NumField()
 	for i := 0; i < num; i++ {
 		value := values.Elem().Field(i)
-
 		if value.Type().String() == "main.vlqInt" {
 			lenSlice := values.Elem().Field(i + 1).Len()
 			result := toVariantLengthQuantity(vlqInt(lenSlice))
