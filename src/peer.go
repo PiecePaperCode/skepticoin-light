@@ -19,7 +19,7 @@ type RemotePeer struct {
 
 var peers = []RemotePeer{
 	{
-		IP:        [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 88, 99, 67},
+		IP:        [16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 194, 193, 244},
 		Port:      2412,
 		Connected: false,
 	},
